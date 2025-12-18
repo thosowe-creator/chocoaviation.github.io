@@ -111,32 +111,39 @@
     <div id="route_finder_modal">
         <div class="bg-white dark:bg-gray-800 w-full max-w-lg p-6 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 mx-4">
             <div class="flex justify-between items-center mb-6">
-                <h3 class="text-xl font-black italic uppercase text-blue-600 dark:text-blue-400">Route Finder</h3>
+                <div class="flex items-center gap-2">
+                    <h3 class="text-xl font-black italic uppercase text-blue-600 dark:text-blue-400 leading-none">Route Finder</h3>
+                    <span class="bg-blue-600 text-white text-[9px] font-black px-1.5 py-0.5 rounded italic">BETA</span>
+                </div>
                 <button onclick="toggleRouteFinder()" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-2xl">✕</button>
             </div>
             <div class="grid grid-cols-2 gap-4 mb-6">
                 <div>
-                    <label class="label-text">Origin</label>
+                    <label class="label-text">Departure (Origin)</label>
                     <select id="route_origin" class="input-field font-bold">
-                        <option value="RKSI">RKSI (Incheon)</option>
-                        <option value="RKSS">RKSS (Gimpo)</option>
+                        <option value="RKSI">RKSI (Seoul/Incheon)</option>
+                        <option value="RKSS">RKSS (Seoul/Gimpo)</option>
+                        <option value="KJFK">KJFK (New York JFK)</option>
+                        <option value="EGLL">EGLL (London Heathrow)</option>
+                        <option value="RJAA">RJAA (Tokyo Narita)</option>
                     </select>
                 </div>
                 <div>
-                    <label class="label-text">Service</label>
+                    <label class="label-text">Service Type</label>
                     <select id="route_type" class="input-field font-bold">
-                        <option value="ALL">All Flights</option>
+                        <option value="ALL">All Destinations</option>
                         <option value="DOM">Domestic</option>
                         <option value="INT">International</option>
                     </select>
                 </div>
             </div>
-            <button onclick="generateRecommendation()" class="w-full bg-blue-600 text-white py-3 rounded-xl font-black uppercase tracking-widest hover:bg-blue-700 transition shadow-lg shadow-blue-500/30 mb-6">Search Destination</button>
+            <button onclick="generateRecommendation()" class="w-full bg-blue-600 text-white py-3 rounded-xl font-black uppercase tracking-widest hover:bg-blue-700 transition shadow-lg shadow-blue-500/30 mb-6">Search Realistic Routes</button>
             <div id="route_results" class="space-y-3 max-h-80 overflow-y-auto pr-2 hidden"></div>
-            <div id="route_empty" class="text-center py-10 text-gray-400 italic text-sm">Select criteria and search.</div>
+            <div id="route_empty" class="text-center py-10 text-gray-400 italic text-sm">Select origin and search for real destinations.</div>
         </div>
     </div>
 
+    <!-- ... rest of the grid sections (Takeoff, Landing, Fuel) ... -->
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <!-- Takeoff Section -->
         <section class="card border-t-8 border-sky-500">
@@ -377,34 +384,44 @@
         }
     };
 
-    const DESTINATIONS = [
-        { icao: 'RKPC', name: 'Jeju', dist: 243, type: 'DOM' },
-        { icao: 'RKPK', name: 'Busan', dist: 180, type: 'DOM' },
-        { icao: 'RKTN', name: 'Daegu', dist: 145, type: 'DOM' },
-        { icao: 'RKNY', name: 'Yangyang', dist: 110, type: 'DOM' },
-        { icao: 'RKJJ', name: 'Gwangju', dist: 155, type: 'DOM' },
-        { icao: 'RKTH', name: 'Pohang', dist: 165, type: 'DOM' },
-        { icao: 'RKPS', name: 'Sacheon', dist: 175, type: 'DOM' },
-        { icao: 'RJTT', name: 'Tokyo Haneda', dist: 630, type: 'INT' },
-        { icao: 'RJAA', name: 'Tokyo Narita', dist: 680, type: 'INT' },
-        { icao: 'RJBB', name: 'Osaka Kansai', dist: 465, type: 'INT' },
-        { icao: 'RJFF', name: 'Fukuoka', dist: 330, type: 'INT' },
-        { icao: 'RJCC', name: 'Sapporo New Chitose', dist: 890, type: 'INT' },
-        { icao: 'RJGG', name: 'Nagoya Chubu', dist: 530, type: 'INT' },
-        { icao: 'RCTP', name: 'Taipei Taoyuan', dist: 800, type: 'INT' },
-        { icao: 'RCKH', name: 'Kaohsiung', dist: 950, type: 'INT' },
-        { icao: 'VHHH', name: 'Hong Kong', dist: 1120, type: 'INT' },
-        { icao: 'ZSPD', name: 'Shanghai Pudong', dist: 450, type: 'INT' },
-        { icao: 'ZBAA', name: 'Beijing Capital', dist: 510, type: 'INT' },
-        { icao: 'VVNB', name: 'Hanoi', dist: 1450, type: 'INT' },
-        { icao: 'VVDN', name: 'Da Nang', dist: 1600, type: 'INT' },
-        { icao: 'WSSS', name: 'Singapore Changi', dist: 2500, type: 'INT' },
-        { icao: 'VTBS', name: 'Bangkok Suvarnabhumi', dist: 2000, type: 'INT' },
-        { icao: 'RPLL', name: 'Manila Ninoy Aquino', dist: 1400, type: 'INT' },
-        { icao: 'KLAX', name: 'Los Angeles', dist: 5180, type: 'INT' },
-        { icao: 'KJFK', name: 'New York JFK', dist: 6050, type: 'INT' },
-        { icao: 'EGLL', name: 'London Heathrow', dist: 4800, type: 'INT' }
-    ];
+    const REAL_ROUTES = {
+        'RKSI': [
+            { icao: 'KJFK', name: 'New York (JFK)', dist: 6050, type: 'INT' },
+            { icao: 'EGLL', name: 'London (Heathrow)', dist: 4800, type: 'INT' },
+            { icao: 'RJAA', name: 'Tokyo (Narita)', dist: 680, type: 'INT' },
+            { icao: 'RJBB', name: 'Osaka (Kansai)', dist: 465, type: 'INT' },
+            { icao: 'WSSS', name: 'Singapore (Changi)', dist: 2500, type: 'INT' },
+            { icao: 'VHHH', name: 'Hong Kong', dist: 1120, type: 'INT' },
+            { icao: 'KLAX', name: 'Los Angeles', dist: 5180, type: 'INT' },
+            { icao: 'RKPK', name: 'Busan', dist: 180, type: 'DOM' }, 
+            { icao: 'RKTN', name: 'Daegu', dist: 145, type: 'DOM' }, 
+        ],
+        'RKSS': [
+            { icao: 'RKPC', name: 'Jeju', dist: 243, type: 'DOM' },
+            { icao: 'RKPK', name: 'Busan', dist: 180, type: 'DOM' },
+            { icao: 'RJTT', name: 'Tokyo (Haneda)', dist: 630, type: 'INT' },
+            { icao: 'RJBB', name: 'Osaka (Kansai)', dist: 465, type: 'INT' },
+            { icao: 'ZSPD', name: 'Shanghai (Pudong)', dist: 450, type: 'INT' },
+        ],
+        'KJFK': [
+            { icao: 'RKSI', name: 'Seoul (Incheon)', dist: 6050, type: 'INT' },
+            { icao: 'EGLL', name: 'London (Heathrow)', dist: 3000, type: 'INT' },
+            { icao: 'KLAX', name: 'Los Angeles', dist: 2470, type: 'DOM' },
+            { icao: 'LFPG', name: 'Paris (CDG)', dist: 3150, type: 'INT' },
+        ],
+        'EGLL': [
+            { icao: 'RKSI', name: 'Seoul (Incheon)', dist: 4800, type: 'INT' },
+            { icao: 'KJFK', name: 'New York (JFK)', dist: 3000, type: 'INT' },
+            { icao: 'LFPG', name: 'Paris (CDG)', dist: 215, type: 'INT' },
+            { icao: 'OMDB', name: 'Dubai', dist: 2970, type: 'INT' },
+        ],
+        'RJAA': [
+            { icao: 'RKSI', name: 'Seoul (Incheon)', dist: 680, type: 'INT' },
+            { icao: 'KJFK', name: 'New York (JFK)', dist: 5850, type: 'INT' },
+            { icao: 'PHNL', name: 'Honolulu', dist: 3320, type: 'INT' },
+            { icao: 'WSSS', name: 'Singapore (Changi)', dist: 2900, type: 'INT' },
+        ]
+    };
 
     let curUnit = 'tons';
     let curMfr = 'Airbus';
@@ -417,7 +434,6 @@
         const P_pa = qnh * 100 * Math.pow(1 - (0.0065 * elev_ft * FT_TO_M / 288.15), 5.255);
         return Math.max(0.1, P_pa / (R_DRY_AIR * T_kelvin));
     }
-
     function getSurfaceFactors(cond) {
         switch(cond) {
             case 'wet': return { rolling: 0.025, braking: 0.28 };
@@ -425,13 +441,12 @@
             default: return { rolling: 0.020, braking: 0.45 };
         }
     }
-
     function getWindComponents(wdirId, wspdId, rhdgId) {
         const wdir = parseFloat(document.getElementById(wdirId).value) || 0;
         const wspd = parseFloat(document.getElementById(wspdId).value) || 0;
         const rhdg = parseFloat(document.getElementById(rhdgId).value) || 0;
         const diffRad = (wdir - rhdg) * Math.PI / 180;
-        return { head: wspd * Math.cos(diffRad), cross: Math.abs(wspd * Math.sin(diffRad)) };
+        return { head: wspd * Math.cos(diffRad), headwind: wspd * Math.cos(diffRad), cross: Math.abs(wspd * Math.sin(diffRad)) };
     }
 
     function calculateTakeoff(ac, eng, rho, oat) {
@@ -443,24 +458,18 @@
         const rwyCond = document.getElementById('to_rwy_cond').value;
         const { head } = getWindComponents('to_wdir', 'to_wspd', 'to_rwy_hdg');
         const surface = getSurfaceFactors(rwyCond);
-
         if (mass_kg < 5000) return;
-
         const vs_ias_ms = Math.sqrt((2 * mass_kg * G_ACCEL) / (1.225 * ac.s_area * flap.cl_max));
         const v2_ias = (vs_ias_ms * 1.15) * MS_TO_KT; 
         const vr_ias = (vs_ias_ms * 1.10) * MS_TO_KT; 
         const v1_ias = vr_ias - (rwyCond === 'dry' ? 2 : 6);
-
         const tas_conversion = Math.sqrt(1.225 / rho);
         const v_rotate_tas_ms = (vr_ias * tas_conversion - head) * KT_TO_MS;
-
         let net_thrust = eng.thrust_kn * 1000 * 2.0; 
         const thrust_lapse = (rho / 1.225) * (oat > eng.flat_rating ? (1 - (oat - eng.flat_rating) * 0.01) : 1.0);
         net_thrust *= thrust_lapse;
-
         if (curMode.includes('FLEX') || curMode.includes('TO-2')) net_thrust *= 0.85;
         else if (curMode.includes('TO-1')) net_thrust *= 0.93;
-
         let cur_gs = 0, dist = 0, dt = 0.5;
         while (cur_gs < v_rotate_tas_ms && dist < 10000) {
             let drag = 0.5 * rho * Math.pow(cur_gs + head * KT_TO_MS, 2) * ac.s_area * flap.cd0;
@@ -470,21 +479,17 @@
             cur_gs += accel * dt;
             dist += cur_gs * dt;
         }
-
         const final_dist = dist * 1.15; 
         const dist_pct = Math.round((final_dist / tora) * 100);
-
         document.getElementById('res_v1').innerText = Math.round(v1_ias);
         document.getElementById('res_vr').innerText = Math.round(vr_ias);
         document.getElementById('res_v2').innerText = Math.round(v2_ias);
         document.getElementById('res_dist').innerText = Math.round(final_dist) + ' m';
         document.getElementById('to_dist_pct').innerText = dist_pct + '%';
         document.getElementById('to_bar').style.width = Math.min(dist_pct, 100) + '%';
-
         const warn = document.getElementById('to_warn');
         if (final_dist > tora) { warn.innerText = "⚠️ RUNWAY LIMITED"; warn.classList.remove('hidden'); }
         else { warn.classList.add('hidden'); }
-
         document.getElementById('res_flex').innerText = curMfr === 'Airbus' ? (curMode === 'FLEX' ? '+52°C' : 'TOGA') : curMode;
         document.getElementById('res_trim').innerText = computeStabTrim(ac, parseFloat(document.getElementById('to_cg').value));
     }
@@ -496,15 +501,11 @@
         const flap = ac.ldFlaps[document.getElementById('ld_flaps').value] || ac.ldFlaps[0];
         const decel_val = parseFloat(document.getElementById('ld_brake').value) || 2.0;
         const { head } = getWindComponents('ld_wdir', 'ld_wspd', 'ld_rwy_hdg');
-
         if (mass_kg < 5000) return;
-
         const vs_land_ias = Math.sqrt((2 * mass_kg * G_ACCEL) / (1.225 * ac.s_area * flap.cl_ref));
         const vref = vs_land_ias * 1.23 * MS_TO_KT;
         const vapp = vref + Math.max(5, Math.min(15, head * 0.5));
-        
         const total_ld = (Math.pow(vref * MS_TO_KT * 0.514, 2) / (2 * decel_val) + 500) * flap.d;
-
         document.getElementById('res_vref').innerText = Math.round(vref);
         document.getElementById('res_vapp').innerText = Math.round(vapp);
         document.getElementById('res_fld').innerText = Math.round(total_ld) + ' m';
@@ -517,7 +518,6 @@
         const time = dist / ac.cruiseSpeed;
         const trip = (ac.burnRate * time) + ac.climbFuel;
         const block = (trip * 1.05) + (parseFloat(document.getElementById('fuel_taxi').value) || 0) + (parseFloat(document.getElementById('fuel_reserve_input').value) || 0);
-        
         const hrs = Math.floor(time);
         const mins = Math.round((time - hrs) * 60);
         document.getElementById('res_time').innerText = `${hrs.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
@@ -551,25 +551,19 @@
         const acId = document.getElementById('master_ac_type').value;
         const ac = FLEET[acId];
         
-        if (origin === 'RKSI' && typeFilter === 'DOM') {
-            resList.innerHTML = '<div class="text-center p-4 text-red-500 font-bold text-xs">RKSI has NO domestic scheduled flights.</div>';
-            resList.classList.remove('hidden');
-            empty.classList.add('hidden');
-            return;
-        }
-
         resList.innerHTML = '';
-        let filtered = typeFilter === 'ALL' ? DESTINATIONS : DESTINATIONS.filter(d => d.type === typeFilter);
+        const allPossible = REAL_ROUTES[origin] || [];
+        let filtered = typeFilter === 'ALL' ? allPossible : allPossible.filter(d => d.type === typeFilter);
 
         if (filtered.length === 0) {
-            empty.innerText = "No routes found.";
+            empty.innerText = "No real destinations found for current filters.";
             empty.classList.remove('hidden');
             resList.classList.add('hidden');
             return;
         }
 
         filtered.forEach(dest => {
-            const timeVal = dest.dist / ac.cruiseSpeed;
+            const timeVal = (dest.dist / ac.cruiseSpeed) + 0.25; 
             const h = Math.floor(timeVal);
             const m = Math.round((timeVal - h) * 60);
             const timeStr = h > 0 ? `${h}h ${m}m` : `${m}m`;
@@ -583,7 +577,7 @@
                 </div>
                 <div class="text-right">
                     <p class="text-xs font-black text-emerald-600 dark:text-emerald-400">${dest.dist} NM</p>
-                    <p class="text-[9px] font-bold text-amber-600 dark:text-amber-400 uppercase">${timeStr}</p>
+                    <p class="text-[9px] font-bold text-amber-600 dark:text-amber-400 uppercase">Est. ${timeStr}</p>
                 </div>`;
             div.onclick = () => { document.getElementById('fuel_dist').value = dest.dist; toggleRouteFinder(); calculateAll(); };
             resList.appendChild(div);
@@ -631,18 +625,15 @@
         const es = document.getElementById('master_engine_type'); es.innerHTML = '';
         Object.keys(ac.engines).forEach(k => { const opt = document.createElement('option'); opt.value = k; opt.innerText = k; es.appendChild(opt); });
         document.getElementById('engine_selector_container').classList.toggle('hidden', Object.keys(ac.engines).length < 2);
-        
         const factor = curUnit === 'lbs' ? K_LBS : 1;
         document.getElementById('to_weight').value = (ac.mtow * 0.85 * factor).toFixed(1);
         document.getElementById('ld_weight').value = (ac.mlw * 0.85 * factor).toFixed(1);
-        
         const tf = document.getElementById('to_flaps'); tf.innerHTML = '';
         ac.toFlaps.forEach((f, i) => { const o = document.createElement('option'); o.value = i; o.innerText = f.f; tf.appendChild(o); });
         const lf = document.getElementById('ld_flaps'); lf.innerHTML = '';
         ac.ldFlaps.forEach((f, i) => { const o = document.createElement('option'); o.value = i; o.innerText = f.f; lf.appendChild(o); });
         const lb = document.getElementById('ld_brake'); lb.innerHTML = '';
         ac.ldBrakes.forEach((b, i) => { const o = document.createElement('option'); o.value = b.decel; o.innerText = b.n; lb.appendChild(o); });
-        
         calculateAll();
     }
 
@@ -666,7 +657,6 @@
         calculateTakeoff(ac, eng, to_rho, parseFloat(document.getElementById('to_env_oat').value));
         calculateLanding(ac); calculateFuel(ac);
     }
-
     window.onload = () => { setManufacturer('Airbus'); };
 </script>
 </body>
