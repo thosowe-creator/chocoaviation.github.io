@@ -1,0 +1,622 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RunwayReady - TOLD CAL</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
+            color: #1f2937;
+        }
+        .mono { font-family: 'JetBrains Mono', monospace; }
+        .card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            padding: 24px;
+        }
+        .input-field {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            font-size: 0.95rem;
+            transition: all 0.2s;
+            background-color: white;
+        }
+        .input-field:focus {
+            outline: none;
+            border-color: #2563eb;
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+        .label-text {
+            display: block;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: #4b5563;
+            margin-bottom: 4px;
+            text-transform: uppercase;
+        }
+        .v-val {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1.875rem;
+            font-weight: 700;
+            color: #2563eb;
+        }
+        .bar-container {
+            height: 8px;
+            background: #e5e7eb;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        .bar-fill { height: 100%; transition: width 0.5s ease-out; }
+        
+        .tab-btn {
+            padding: 4px 12px;
+            font-weight: 600;
+            font-size: 0.75rem;
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s;
+            color: #6b7280;
+        }
+        .tab-btn.active {
+            border-bottom-color: #2563eb;
+            color: #2563eb;
+        }
+
+        .told-title {
+            font-weight: 900;
+            letter-spacing: -0.05em;
+            line-height: 1;
+            transition: font-size 0.3s ease;
+        }
+        .to-color { color: #0ea5e9; }
+        .ld-color { color: #92400e; }
+        
+        /* 엔진 타입 유무에 따른 제목 크기 조절 */
+        .header-compact .told-title { font-size: 1.875rem; } /* text-3xl */
+        .header-normal .told-title { font-size: 2.25rem; }   /* text-4xl */
+        
+        @media (min-width: 768px) {
+            .header-compact .told-title { font-size: 2.25rem; } /* text-4xl */
+            .header-normal .told-title { font-size: 3rem; }     /* text-5xl */
+        }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+
+<div class="max-w-7xl mx-auto">
+    <header id="main_header" class="flex flex-col lg:flex-row justify-between items-center mb-10 gap-4 header-normal">
+        <div class="shrink-0">
+            <h1 class="told-title">
+                <span class="to-color">TO</span><span class="ld-color">LD</span> <span class="text-gray-900">CAL</span>
+            </h1>
+        </div>
+        
+        <div class="flex flex-wrap items-center justify-center lg:justify-end gap-3 bg-white p-2 rounded-xl shadow-sm border border-gray-200 w-full lg:w-auto">
+            <!-- Manufacturer Tabs -->
+            <div class="flex border-r border-gray-100 pr-2">
+                <button id="tab_airbus" class="tab-btn active" onclick="setManufacturer('Airbus')">Airbus</button>
+                <button id="tab_boeing" class="tab-btn" onclick="setManufacturer('Boeing')">Boeing</button>
+            </div>
+            
+            <!-- Aircraft Model -->
+            <div class="flex items-center px-1">
+                <select id="master_ac_type" class="bg-transparent font-bold text-gray-800 outline-none text-base md:text-lg cursor-pointer px-1 py-1" onchange="syncAircraft(this.value)">
+                </select>
+            </div>
+
+            <!-- Engine Selection (Conditional) -->
+            <div id="engine_selector_container" class="hidden flex items-center px-2 border-l border-gray-200">
+                <span class="text-[9px] font-extrabold text-gray-400 mr-2 bg-gray-100 px-1 rounded">ENG</span>
+                <select id="master_engine_type" class="bg-transparent font-bold text-blue-600 outline-none text-xs md:text-sm cursor-pointer" onchange="calculateAll()">
+                </select>
+            </div>
+
+            <div class="h-6 w-[1px] bg-gray-200 hidden md:block"></div>
+            
+            <!-- Unit Switcher -->
+            <div class="flex gap-1 p-1 bg-gray-50 rounded-lg shrink-0">
+                <button id="master_unit_tons" class="px-2 py-1 rounded-md text-[10px] font-bold transition-all shadow-sm bg-blue-600 text-white" onclick="setMasterUnit('tons')">METRIC</button>
+                <button id="master_unit_lbs" class="px-2 py-1 rounded-md text-[10px] font-bold transition-all text-gray-500 hover:bg-gray-200" onclick="setMasterUnit('lbs')">IMPERIAL</button>
+            </div>
+        </div>
+    </header>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <!-- TAKEOFF SECTION -->
+        <section class="flex flex-col gap-6">
+            <div class="card border-t-8 border-sky-500">
+                <div class="flex items-center gap-2 mb-6">
+                    <span class="text-2xl text-sky-500">🛫</span>
+                    <h2 class="text-2xl font-black text-gray-800 uppercase italic tracking-tighter">Takeoff</h2>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="col-span-1">
+                        <label class="label-text">Weight (<span class="unit-text">Tons</span>)</label>
+                        <input type="number" id="to_weight" class="input-field" value="68.0" step="0.1" oninput="calculateAll()">
+                    </div>
+                    <div class="col-span-1">
+                        <label class="label-text">Runway Length (m)</label>
+                        <input type="number" id="to_tora" class="input-field" value="3200" oninput="calculateAll()">
+                    </div>
+                    <div class="col-span-1">
+                        <label class="label-text">RWY Heading</label>
+                        <input type="number" id="to_rwy_hdg" class="input-field" value="320" oninput="calculateAll()">
+                    </div>
+                    <div class="col-span-1">
+                        <label class="label-text">Wind (Dir/Spd)</label>
+                        <div class="flex gap-2">
+                            <input type="number" id="to_wdir" class="input-field" value="320" oninput="calculateAll()">
+                            <input type="number" id="to_wspd" class="input-field" value="10" oninput="calculateAll()">
+                        </div>
+                    </div>
+                    <div class="col-span-1">
+                        <label class="label-text">OAT (°C)</label>
+                        <input type="number" id="to_oat" class="input-field" value="15" oninput="calculateAll()">
+                    </div>
+                    <div class="col-span-1">
+                        <label class="label-text">QNH (hPa)</label>
+                        <input type="number" id="to_qnh" class="input-field" value="1013" oninput="calculateAll()">
+                    </div>
+                    <div class="col-span-1">
+                        <label class="label-text">Flaps</label>
+                        <select id="to_flaps" class="input-field" onchange="calculateAll()"></select>
+                    </div>
+                    <div class="col-span-1">
+                        <label class="label-text">RWY Condition</label>
+                        <select id="to_cond" class="input-field" onchange="calculateAll()">
+                            <option value="dry">Dry</option>
+                            <option value="wet">Wet</option>
+                            <option value="ice">Contaminated</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="mt-8 p-6 bg-sky-50/50 rounded-xl border border-sky-100">
+                    <div class="flex justify-around mb-6 text-center">
+                        <div><p class="label-text">V1</p><p id="res_v1" class="v-val text-sky-600">--</p></div>
+                        <div><p class="label-text">VR</p><p id="res_vr" class="v-val text-sky-600">--</p></div>
+                        <div><p class="label-text">V2</p><p id="res_v2" class="v-val text-sky-600">--</p></div>
+                    </div>
+                    <div class="space-y-3">
+                        <div class="flex justify-between text-sm" id="flex_row">
+                            <span class="text-gray-500 font-medium">FLEX / ASSUMED TEMP</span>
+                            <span id="res_flex" class="font-bold text-sky-700">--</span>
+                        </div>
+                        <div class="flex justify-between text-sm">
+                            <span class="text-gray-500 font-medium">STABILIZER TRIM</span>
+                            <span id="res_trim" class="font-bold text-gray-800">--</span>
+                        </div>
+                        <div class="flex justify-between text-sm">
+                            <span class="text-gray-500 font-medium">BALANCED FIELD LENGTH</span>
+                            <span id="res_bfl" class="font-bold text-gray-800">-- m</span>
+                        </div>
+                    </div>
+                    <div class="mt-4">
+                        <div class="bar-container"><div id="to_bar" class="bar-fill"></div></div>
+                        <p id="to_warn" class="hidden mt-3 p-2 bg-red-50 text-red-600 text-xs rounded border border-red-200 font-medium"></p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- LANDING SECTION -->
+        <section class="flex flex-col gap-6">
+            <div class="card border-t-8 border-amber-800">
+                <div class="flex items-center gap-2 mb-6">
+                    <span class="text-2xl text-amber-800">🛬</span>
+                    <h2 class="text-2xl font-black text-gray-800 uppercase italic tracking-tighter">Landing</h2>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="col-span-1">
+                        <label class="label-text">Weight (<span class="unit-text">Tons</span>)</label>
+                        <input type="number" id="ld_weight" class="input-field" value="60.0" step="0.1" oninput="calculateAll()">
+                    </div>
+                    <div class="col-span-1">
+                        <label class="label-text">Runway Length (m)</label>
+                        <input type="number" id="ld_lda" class="input-field" value="3200" oninput="calculateAll()">
+                    </div>
+                    <div class="col-span-1">
+                        <label class="label-text">RWY Heading</label>
+                        <input type="number" id="ld_rwy_hdg" class="input-field" value="320" oninput="calculateAll()">
+                    </div>
+                    <div class="col-span-1">
+                        <label class="label-text">Wind (Dir/Spd)</label>
+                        <div class="flex gap-2">
+                            <input type="number" id="ld_wdir" class="input-field" value="320" oninput="calculateAll()">
+                            <input type="number" id="ld_wspd" class="input-field" value="10" oninput="calculateAll()">
+                        </div>
+                    </div>
+                    <div class="col-span-1">
+                        <label class="label-text">OAT (°C)</label>
+                        <input type="number" id="ld_oat" class="input-field" value="15" oninput="calculateAll()">
+                    </div>
+                    <div class="col-span-1">
+                        <label class="label-text">QNH (hPa)</label>
+                        <input type="number" id="ld_qnh" class="input-field" value="1013" oninput="calculateAll()">
+                    </div>
+                    <div class="col-span-1">
+                        <label class="label-text">Landing Flaps</label>
+                        <select id="ld_flaps" class="input-field" onchange="calculateAll()"></select>
+                    </div>
+                    <div class="col-span-1">
+                        <label class="label-text">Braking Action</label>
+                        <select id="ld_brake" class="input-field" onchange="calculateAll()"></select>
+                    </div>
+                    <div class="col-span-2">
+                        <label class="label-text">RWY Condition</label>
+                        <select id="ld_cond" class="input-field" onchange="calculateAll()">
+                            <option value="dry">Dry</option>
+                            <option value="wet">Wet</option>
+                            <option value="ice">Contaminated</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="mt-8 p-6 bg-amber-50/50 rounded-xl border border-amber-100">
+                    <div class="flex justify-around mb-6 text-center">
+                        <div><p class="label-text">VREF</p><p id="res_vref" class="v-val text-amber-800">--</p></div>
+                        <div><p class="label-text">V-APP</p><p id="res_vapp" class="v-val text-amber-800">--</p></div>
+                    </div>
+                    <div class="space-y-3">
+                        <div class="flex justify-between text-sm">
+                            <span class="text-gray-500 font-medium">ACTUAL DIST (ALD)</span>
+                            <span id="res_ald" class="font-bold text-gray-800">-- m</span>
+                        </div>
+                        <div class="flex justify-between text-sm">
+                            <span class="text-gray-500 font-medium">FACTORED DIST (FLD 1.67)</span>
+                            <span id="res_fld" class="font-bold text-amber-900">-- m</span>
+                        </div>
+                        <div class="flex justify-between text-sm">
+                            <span class="text-gray-500 font-medium">REMAINING MARGIN</span>
+                            <span id="res_ld_margin" class="font-bold text-gray-800">-- m</span>
+                        </div>
+                    </div>
+                    <div class="mt-4">
+                        <div class="bar-container"><div id="ld_bar" class="bar-fill"></div></div>
+                        <p id="ld_warn" class="hidden mt-3 p-2 bg-red-50 text-red-600 text-xs rounded border border-red-200 font-medium"></p>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+</div>
+
+<script>
+    const K_LBS_RATIO = 2.20462;
+    let currentUnit = 'tons';
+    let currentManufacturer = 'Airbus';
+
+    const FLEET_DATA = {
+        'A320-200': {
+            mtow: 78.0, mlw: 66.0,
+            toFlaps: [['1+F', 1.15], ['2', 1.30], ['3', 1.45]],
+            ldFlaps: [['FULL', 0], ['3', 3]],
+            ldBrakes: [['MAX', 1.0], ['MED', 1.3], ['LOW', 1.7]],
+            vBase: 125, vScaling: 1.6, trimType: 'THS', hasFlex: true,
+            engines: {
+                'CFM56': { label: 'CFM56-5B4', mtowMod: 0, vOffset: 0, bflMod: 1.0, flexMax: 72 },
+                'IAE2500': { label: 'IAE V2527-A5', mtowMod: 0.1, vOffset: 1, bflMod: 0.98, flexMax: 68 }
+            }
+        },
+        'A321-200': {
+            mtow: 93.5, mlw: 77.8,
+            toFlaps: [['1+F', 1.12], ['2', 1.28], ['3', 1.42]],
+            ldFlaps: [['FULL', 0], ['3', 4]],
+            ldBrakes: [['MAX', 1.0], ['MED', 1.35], ['LOW', 1.8]],
+            vBase: 132, vScaling: 1.4, trimType: 'THS', hasFlex: true,
+            engines: {
+                'CFM56': { label: 'CFM56-5B3', mtowMod: 0, vOffset: 0, bflMod: 1.0, flexMax: 70 },
+                'IAE2500': { label: 'IAE V2533-A5', mtowMod: 0.2, vOffset: 2, bflMod: 0.96, flexMax: 66 }
+            }
+        },
+        'A330-300': {
+            mtow: 242.0, mlw: 187.0,
+            toFlaps: [['1', 1.10], ['2', 1.25], ['3', 1.40]],
+            ldFlaps: [['FULL', 0], ['3', 4]],
+            ldBrakes: [['MAX', 1.0], ['MED', 1.4], ['LOW', 1.9]],
+            vBase: 135, vScaling: 0.45, trimType: 'THS', hasFlex: true,
+            engines: {
+                'TRENT700': { label: 'RR Trent 772B', mtowMod: 0, vOffset: 0, bflMod: 0.92, flexMax: 65 },
+                'PW4000': { label: 'PW 4168', mtowMod: -1.0, vOffset: 1, bflMod: 0.96, flexMax: 62 },
+                'CF6': { label: 'GE CF6-80E1', mtowMod: -0.5, vOffset: 2, bflMod: 0.98, flexMax: 68 }
+            }
+        },
+        'B737-800': {
+            mtow: 79.0, mlw: 66.3,
+            toFlaps: [['5', 1.05], ['10', 1.22], ['15', 1.38], ['25', 1.55]],
+            ldFlaps: [['30', 0], ['40', -3], ['15', 10]],
+            ldBrakes: [['MAX', 1.0], ['AUTOBRAKE 3', 1.3], ['AUTOBRAKE 2', 1.6], ['AUTOBRAKE 1', 2.1]],
+            vBase: 128, vScaling: 1.8, trimType: 'STAB', hasFlex: false
+        },
+        'B777-200ER': {
+            mtow: 297.5, mlw: 213.1,
+            toFlaps: [['5', 1.05], ['15', 1.25], ['20', 1.40]],
+            ldFlaps: [['30', 0], ['25', 5]],
+            ldBrakes: [['MAX', 1.0], ['AUTOBRAKE 4', 1.2], ['AUTOBRAKE 3', 1.4], ['AUTOBRAKE 2', 1.8], ['AUTOBRAKE 1', 2.3]],
+            vBase: 138, vScaling: 0.40, trimType: 'STAB', hasFlex: false,
+            engines: {
+                'GE90': { label: 'GE90-94B', mtowMod: 0, vOffset: 0, bflMod: 1.0, flexMax: 70 },
+                'PW4000': { label: 'PW 4090', mtowMod: -2.5, vOffset: 1, bflMod: 1.05, flexMax: 65 },
+                'TRENT800': { label: 'RR Trent 895', mtowMod: -1.0, vOffset: -1, bflMod: 0.98, flexMax: 68 }
+            }
+        },
+        'B777-300ER': {
+            mtow: 351.5, mlw: 251.2,
+            toFlaps: [['5', 1.05], ['15', 1.30], ['20', 1.45]],
+            ldFlaps: [['30', 0], ['25', 5]],
+            ldBrakes: [['MAX', 1.0], ['AUTOBRAKE 4', 1.2], ['AUTOBRAKE 3', 1.4], ['AUTOBRAKE 2', 1.8], ['AUTOBRAKE 1', 2.3]],
+            vBase: 142, vScaling: 0.35, trimType: 'STAB', hasFlex: false
+        }
+    };
+
+    const MANUFACTURER_MODELS = {
+        'Airbus': ['A320-200', 'A321-200', 'A330-300'],
+        'Boeing': ['B737-800', 'B777-200ER', 'B777-300ER']
+    };
+
+    function setManufacturer(mfr) {
+        currentManufacturer = mfr;
+        document.getElementById('tab_airbus').classList.toggle('active', mfr === 'Airbus');
+        document.getElementById('tab_boeing').classList.toggle('active', mfr === 'Boeing');
+        
+        const modelSelect = document.getElementById('master_ac_type');
+        modelSelect.innerHTML = '';
+        MANUFACTURER_MODELS[mfr].forEach(model => {
+            let opt = document.createElement('option');
+            opt.value = model;
+            opt.innerText = model;
+            modelSelect.appendChild(opt);
+        });
+        syncAircraft(modelSelect.value);
+    }
+
+    function syncAircraft(val) {
+        const ac = FLEET_DATA[val];
+        if(!ac) return;
+
+        const engContainer = document.getElementById('engine_selector_container');
+        const engSelect = document.getElementById('master_engine_type');
+        const mainHeader = document.getElementById('main_header');
+        
+        if (ac.engines) {
+            engContainer.classList.remove('hidden');
+            mainHeader.classList.replace('header-normal', 'header-compact');
+            engSelect.innerHTML = '';
+            Object.keys(ac.engines).forEach(key => {
+                let opt = document.createElement('option');
+                opt.value = key;
+                opt.innerText = ac.engines[key].label;
+                engSelect.appendChild(opt);
+            });
+        } else {
+            engContainer.classList.add('hidden');
+            mainHeader.classList.replace('header-compact', 'header-normal');
+        }
+
+        const toW = document.getElementById('to_weight');
+        const ldW = document.getElementById('ld_weight');
+        let newToW = (ac.mtow * 0.88).toFixed(1);
+        let newLdW = (ac.mlw * 0.92).toFixed(1);
+        
+        if (currentUnit === 'lbs') {
+            newToW = (newToW * K_LBS_RATIO).toFixed(1);
+            newLdW = (newLdW * K_LBS_RATIO).toFixed(1);
+        }
+        toW.value = newToW;
+        ldW.value = newLdW;
+
+        updateUI(val);
+        calculateAll();
+    }
+
+    function setMasterUnit(unit) {
+        if (currentUnit === unit) return;
+        const toW = document.getElementById('to_weight');
+        const ldW = document.getElementById('ld_weight');
+        const labels = document.querySelectorAll('.unit-text');
+        const btnMetric = document.getElementById('master_unit_tons');
+        const btnImperial = document.getElementById('master_unit_lbs');
+
+        if (unit === 'lbs') {
+            toW.value = (parseFloat(toW.value) * K_LBS_RATIO).toFixed(1);
+            ldW.value = (parseFloat(ldW.value) * K_LBS_RATIO).toFixed(1);
+            labels.forEach(l => l.innerText = '1000 Lbs');
+            btnImperial.className = "px-2 py-1 rounded-md text-[10px] font-bold transition-all shadow-sm bg-blue-600 text-white";
+            btnMetric.className = "px-2 py-1 rounded-md text-[10px] font-bold transition-all text-gray-500 hover:bg-gray-200";
+        } else {
+            toW.value = (parseFloat(toW.value) / K_LBS_RATIO).toFixed(1);
+            ldW.value = (parseFloat(ldW.value) / K_LBS_RATIO).toFixed(1);
+            labels.forEach(l => l.innerText = 'Tons');
+            btnMetric.className = "px-2 py-1 rounded-md text-[10px] font-bold transition-all shadow-sm bg-blue-600 text-white";
+            btnImperial.className = "px-2 py-1 rounded-md text-[10px] font-bold transition-all text-gray-500 hover:bg-gray-200";
+        }
+        currentUnit = unit;
+        calculateAll();
+    }
+
+    function updateUI(acType) {
+        const ac = FLEET_DATA[acType];
+        if(!ac) return;
+
+        const toF = document.getElementById('to_flaps');
+        toF.innerHTML = '';
+        ac.toFlaps.forEach(f => {
+            let opt = document.createElement('option');
+            opt.value = f[1]; opt.innerText = f[0];
+            toF.appendChild(opt);
+        });
+
+        const ldF = document.getElementById('ld_flaps');
+        ldF.innerHTML = '';
+        ac.ldFlaps.forEach(f => {
+            let opt = document.createElement('option');
+            opt.value = f[1]; opt.innerText = f[0];
+            ldF.appendChild(opt);
+        });
+
+        const ldB = document.getElementById('ld_brake');
+        ldB.innerHTML = '';
+        ac.ldBrakes.forEach(b => {
+            let opt = document.createElement('option');
+            opt.value = b[1]; opt.innerText = b[0];
+            ldB.appendChild(opt);
+        });
+
+        const flexRow = document.getElementById('flex_row');
+        if (flexRow) flexRow.style.display = ac.hasFlex ? 'flex' : 'none';
+    }
+
+    const getDensityAltitude = (oat, qnh) => {
+        const pressAlt = (1013.25 - qnh) * 27.5;
+        const isaTemp = 15 - (pressAlt / 1000) * 1.98;
+        const densityAlt = pressAlt + (oat - isaTemp) * 120;
+        const sigma = Math.pow(Math.max(0.1, (288.15 - 0.00198 * densityAlt) / 288.15), 4.256);
+        return { pressAlt, densityAlt, sigma, isaDev: oat - isaTemp };
+    };
+
+    const getWindComp = (wdir, wspd, rwy) => {
+        const diff = (wdir - rwy + 360) % 360;
+        return wspd * Math.cos(diff * (Math.PI / 180));
+    };
+
+    function calculateAll() {
+        const acType = document.getElementById('master_ac_type').value;
+        const ac = FLEET_DATA[acType];
+        if(!ac) return;
+
+        const getVal = (id) => parseFloat(document.getElementById(id).value) || 0;
+
+        let toW = getVal('to_weight');
+        let ldW = getVal('ld_weight');
+        if (currentUnit === 'lbs') { toW /= K_LBS_RATIO; ldW /= K_LBS_RATIO; }
+
+        const toEnv = getDensityAltitude(getVal('to_oat'), getVal('to_qnh'));
+        const ldEnv = getDensityAltitude(getVal('ld_oat'), getVal('ld_qnh'));
+        const toHW = getWindComp(getVal('to_wdir'), getVal('to_wspd'), getVal('to_rwy_hdg'));
+        const ldHW = getWindComp(getVal('ld_wdir'), getVal('ld_wspd'), getVal('ld_rwy_hdg'));
+
+        const toFlapFactor = getVal('to_flaps');
+        const toTORA = getVal('to_tora');
+        const toCond = document.getElementById('to_cond').value;
+
+        let engineMod = { label: 'Standard', mtowMod: 0, vOffset: 0, bflMod: 1.0, flexMax: 70 };
+        if (ac.engines) {
+            const engKey = document.getElementById('master_engine_type').value;
+            if (ac.engines[engKey]) engineMod = ac.engines[engKey];
+        }
+
+        const effectiveMTOW = ac.mtow + engineMod.mtowMod;
+        const isHeavy = effectiveMTOW > 150;
+        const weightRatioFactor = isHeavy ? 0.9 : 0.86;
+        
+        let baseBFL = (isHeavy ? 2100 : 1780) * Math.pow(toW / (effectiveMTOW * weightRatioFactor), 2.2);
+        baseBFL /= toEnv.sigma;
+        baseBFL *= engineMod.bflMod;
+        baseBFL *= (1 + Math.max(0, toEnv.isaDev) * 0.015);
+        baseBFL *= (toHW > 0) ? (1 - (toHW / 10) * 0.06) : (1 + (Math.abs(toHW) / 10) * 0.15);
+        
+        if (toCond === 'wet') baseBFL *= 1.18;
+        if (toCond === 'ice') baseBFL *= 1.55;
+        baseBFL /= toFlapFactor;
+
+        const vWeightRef = isHeavy ? (effectiveMTOW * 0.75) : 60;
+        let v2 = (ac.vBase + (toW - vWeightRef) * ac.vScaling) / Math.sqrt(toEnv.sigma);
+        v2 += engineMod.vOffset;
+        
+        const vr = v2 - (isHeavy ? 6 : 4);
+        const v1 = vr - (toCond === 'dry' ? 4 : 12);
+
+        if(ac.hasFlex) {
+            let flex = Math.floor(44 + (toTORA - baseBFL) / (isHeavy ? 80 : 55) - toEnv.isaDev);
+            flex = Math.min(Math.max(flex, getVal('to_oat') + 5), engineMod.flexMax);
+            document.getElementById('res_flex').innerText = flex > (getVal('to_oat') + 5) ? `+${flex}°C` : "TOGA Power";
+        }
+
+        let trim = "";
+        if (acType.startsWith('A3')) {
+            const cgScale = acType === 'A330-300' ? 0.04 : (acType === 'A321-200' ? 0.08 : 0.12);
+            const cgRef = acType === 'A330-300' ? 180 : (acType === 'A321-200' ? 78 : 64);
+            const ths = (toW - cgRef) * cgScale;
+            trim = ths >= 0 ? `UP ${ths.toFixed(1)}` : `DN ${Math.abs(ths).toFixed(1)}`;
+        } else {
+            const isT7 = acType.startsWith('B777');
+            const stabBase = isT7 ? 5.2 : 4.8;
+            const stabScale = isT7 ? 0.03 : 0.09;
+            const stabRef = isT7 ? (acType === 'B777-300ER' ? 260 : 210) : 62;
+            trim = (stabBase + (toW - stabRef) * stabScale).toFixed(1) + " UNT";
+        }
+
+        document.getElementById('res_v1').innerText = Math.round(v1);
+        document.getElementById('res_vr').innerText = Math.round(vr);
+        document.getElementById('res_v2').innerText = Math.round(v2);
+        document.getElementById('res_bfl').innerText = Math.round(baseBFL);
+        document.getElementById('res_trim').innerText = `${ac.trimType} ${trim}`;
+
+        const toBar = document.getElementById('to_bar');
+        const toRatio = (baseBFL / toTORA) * 100;
+        toBar.style.width = Math.min(toRatio, 100) + '%';
+        toBar.className = `bar-fill ${toRatio > 90 ? 'bg-red-500' : (toRatio > 75 ? 'bg-amber-500' : 'bg-sky-500')}`;
+        
+        const toWarn = document.getElementById('to_warn');
+        if (toW > effectiveMTOW || baseBFL > toTORA) {
+            toWarn.classList.remove('hidden');
+            toWarn.innerText = toW > effectiveMTOW ? `⚠️ EXCEEDS MTOW (${effectiveMTOW.toFixed(1)}T)` : `⚠️ FIELD LENGTH LIMITED`;
+        } else { toWarn.classList.add('hidden'); }
+
+        const ldFlapVrefAdd = getVal('ld_flaps');
+        const ldBrakeFactor = getVal('ld_brake');
+        const ldLDA = getVal('ld_lda');
+        const ldCond = document.getElementById('ld_cond').value;
+
+        const isHeavyLd = ac.mtow > 150;
+        const vRefWeightRef = isHeavyLd ? (ac.mlw * 0.8) : 55;
+        const vref = (ac.vBase - 5 + (ldW - vRefWeightRef) * ac.vScaling) + ldFlapVrefAdd;
+        let windIncrement = Math.max(5, ldHW * 0.5);
+        const vapp = vref + Math.min(windIncrement, 15);
+
+        const aldRef = isHeavyLd ? 1400 : 1050;
+        const aldWeightFactor = isHeavyLd ? (ac.mlw * 0.85) : (ac.mlw * 0.9);
+        let ald = aldRef * (ldW / aldWeightFactor);
+        ald /= ldEnv.sigma;
+        ald *= ldBrakeFactor;
+        if (ldFlapVrefAdd > 0) ald *= (1 + ldFlapVrefAdd * 0.02);
+        else if (ldFlapVrefAdd < 0) ald *= 0.95;
+
+        if (ldHW < 0) ald *= (1 + (Math.abs(ldHW) / 10) * 0.18);
+        if (ldCond === 'wet') ald *= 1.32;
+        if (ldCond === 'ice') ald *= 1.88;
+
+        const fld = ald * 1.67;
+
+        document.getElementById('res_vref').innerText = Math.round(vref);
+        document.getElementById('res_vapp').innerText = Math.round(vapp);
+        document.getElementById('res_ald').innerText = Math.round(ald);
+        document.getElementById('res_fld').innerText = Math.round(fld);
+        document.getElementById('res_ld_margin').innerText = Math.round(ldLDA - fld) + " m";
+
+        const ldBar = document.getElementById('ld_bar');
+        const ldRatio = (fld / ldLDA) * 100;
+        ldBar.style.width = Math.min(ldRatio, 100) + '%';
+        ldBar.className = `bar-fill ${ldRatio > 90 ? 'bg-red-500' : 'bg-amber-800'}`;
+
+        const ldWarn = document.getElementById('ld_warn');
+        if (ldW > ac.mlw || fld > ldLDA) {
+            ldWarn.classList.remove('hidden');
+            ldWarn.innerText = ldW > ac.mlw ? `⚠️ EXCEEDS MLW (${ac.mlw}T)` : `⚠️ INSUFFICIENT RUNWAY`;
+        } else { ldWarn.classList.add('hidden'); }
+    }
+
+    window.onload = function() {
+        setManufacturer('Airbus');
+    };
+</script>
+</body>
+</html>
